@@ -8,8 +8,12 @@ spring:
     gateway:
       server:
         webflux:
-          # Routes to the business services are added as each service is created.
-          routes: []
+          # lb:// = resolve the service through Eureka and load-balance between its instances
+          routes:
+            - id: catalog-service
+              uri: lb://catalog-service
+              predicates:
+                - Path=/api/catalog/**
 
 eureka:
   client:
