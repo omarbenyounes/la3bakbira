@@ -36,7 +36,7 @@ with a public storefront and an administration dashboard that controls the whole
 |--------------------|------------------------------------------------|
 | Frontend           | Angular 21 (standalone components), TypeScript, Bootstrap 5 + Angular Material |
 | Backend runtime    | Java 21 (LTS)                                  |
-| Backend framework  | Spring Boot 3.x, Spring Cloud (Gateway, Eureka client/server) |
+| Backend framework  | Spring Boot 4.1.1, Spring Cloud 2025.1.3 (Gateway 5 – WebFlux, Eureka 5) |
 | Persistence        | PostgreSQL 16, Spring Data JPA, Hibernate       |
 | Security           | Keycloak (OIDC/JWT), Spring Security 6 OAuth2 Resource Server |
 | API docs           | springdoc-openapi (Swagger UI / OpenAPI 3)      |
@@ -50,6 +50,9 @@ with a public storefront and an administration dashboard that controls the whole
 **Why PostgreSQL over MySQL:** Keycloak also needs a database; one engine for both
 keeps the infrastructure simpler. PostgreSQL also has strong JSON support, which is
 handy for variable product specifications (RAM, screen size, etc.).
+
+**Why Spring Boot 4.1:** the requirement is "3.2 or later"; Spring Initializr no longer offers
+3.x, and 4.1.1 is the current stable release with a compatible Spring Cloud train (2025.1.x).
 
 **Why Maven over Gradle:** the most common choice for Spring Boot projects. The wrapper
 means no global installation is required.
