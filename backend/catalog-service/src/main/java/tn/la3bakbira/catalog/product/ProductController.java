@@ -1,6 +1,9 @@
 package tn.la3bakbira.catalog.product;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -21,6 +24,7 @@ import tn.la3bakbira.catalog.product.ProductDtos.ProductSummary;
 
 import java.net.URI;
 
+@Tag(name = "Products", description = "Product search, details and management")
 @RestController
 @RequestMapping("/api/catalog/products")
 public class ProductController {
@@ -31,36 +35,42 @@ public class ProductController {
         this.service = service;
     }
 
-    /**
-     * Example: /api/catalog/products?categoryId=3&brandId=2&minPrice=1000&inStock=true&sort=price,asc&page=0&size=20
-     */
+    @Operation(summary = "Search products",
+            description = "All filters are optional and combined. Filtering by category includes its sub-categories; "
+                    + "price filters apply to the discounted price. Sort example: price,asc")
     @GetMapping
-    public PageResponse<ProductSummary> search(ProductFilter filter,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public PageResponse<ProductSummary> search(@ParameterObject ProductFilter filter,
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
         return service.search(filter, pageable);
     }
 
+    @Operation(summary = "Get a product by id")
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
         return service.get(id);
     }
 
+    @Operation(summary = "Get a product by slug", description = "Used by the storefront product page URLs")
     @GetMapping("/slug/{slug}")
     public ProductResponse getBySlug(@PathVariable String slug) {
         return service.getBySlug(slug);
     }
 
+    @Operation(summary = "Create a product", description = "A blank slug is generated from the name")
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
         ProductResponse created = service.create(request);
         return ResponseEntity.created(URI.create("/api/catalog/products/" + created.id())).body(created);
     }
 
+    @Operation(summary = "Update a product", description = "Replaces all fields, including images and specs")
     @PutMapping("/{id}")
     public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return service.update(id, request);
     }
 
+    @Operation(summary = "Delete a product")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);

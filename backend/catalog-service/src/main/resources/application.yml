@@ -25,6 +25,12 @@ spring:
     problemdetails:
       enabled: true
 
+springdoc:
+  # Only the JSON description is served here; Swagger UI lives on the gateway
+  api-docs:
+    path: /v3/api-docs
+  default-produces-media-type: application/json
+
 eureka:
   client:
     service-url:

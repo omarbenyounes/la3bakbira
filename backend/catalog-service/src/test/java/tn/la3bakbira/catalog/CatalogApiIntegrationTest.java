@@ -121,6 +121,19 @@ class CatalogApiIntegrationTest {
         mvc.perform(get("/api/catalog/products").param("sort", "nope")).andExpect(status().isBadRequest());
     }
 
+    @Test
+    void publishesOpenApiDescription() throws Exception {
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("Catalog API"))
+                .andExpect(jsonPath("$.servers[0].url").value("/"))
+                .andExpect(jsonPath("$.paths['/api/catalog/products'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/catalog/categories/tree'].get").exists())
+                // Filter record and Pageable are expanded into individual query parameters
+                .andExpect(jsonPath("$.paths['/api/catalog/products'].get.parameters[?(@.name == 'categoryId')]").exists())
+                .andExpect(jsonPath("$.paths['/api/catalog/products'].get.parameters[?(@.name == 'sort')]").exists());
+    }
+
     private long createCategory(String json) throws Exception {
         return idOf(mvc.perform(post("/api/catalog/categories").contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());

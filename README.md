@@ -55,6 +55,13 @@ If a port is taken on your machine, append `--server.port=XXXX` (or set `SERVER_
 The Eureka address can be changed with `EUREKA_URL`, and the database with
 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
+## API documentation (Swagger UI)
+
+With the services running, open **http://localhost:8080/swagger-ui.html** (served by the gateway).
+Pick a service in the top-right "Select a definition" list, then use **Try it out** to send real
+requests through the gateway. Each service publishes its OpenAPI 3 description at `/v3/api-docs`;
+the gateway exposes them as `/docs/<service-name>/v3/api-docs`.
+
 ## Catalog API (through the gateway)
 
 | Method | Path                                   | Purpose |
@@ -78,4 +85,5 @@ Prices are in TND with 3 decimals.
 - [x] Step 1 – Environment check, architecture, repository initialization
 - [x] Step 2 – Backend skeleton: Maven multi-module, Eureka discovery-server, API gateway
 - [x] Step 3 – catalog-service (categories, brands, products) with PostgreSQL
-- [ ] Step 4 – Swagger / OpenAPI documentation
+- [x] Step 4 – Swagger / OpenAPI documentation (aggregated on the gateway)
+- [ ] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)

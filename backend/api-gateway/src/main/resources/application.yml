@@ -14,6 +14,22 @@ spring:
               uri: lb://catalog-service
               predicates:
                 - Path=/api/catalog/**
+            # OpenAPI description of each service, consumed by the Swagger UI below
+            - id: catalog-service-docs
+              uri: lb://catalog-service
+              predicates:
+                - Path=/docs/catalog-service/v3/api-docs
+              filters:
+                - RewritePath=/docs/catalog-service/v3/api-docs, /v3/api-docs
+
+# Single Swagger UI for all services: http://localhost:8080/swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls:
+      - name: catalog-service
+        url: /docs/catalog-service/v3/api-docs
 
 eureka:
   client:
