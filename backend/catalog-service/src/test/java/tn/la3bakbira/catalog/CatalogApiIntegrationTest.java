@@ -9,8 +9,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import tn.la3bakbira.catalog.security.KeycloakRolesConverter;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,14 +31,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 class CatalogApiIntegrationTest {
 
+    /** A token as Keycloak issues it, converted by the application's own role mapping. */
+    private static final RequestPostProcessor ADMIN = userWithRealmRoles("ADMIN", "CUSTOMER");
+    private static final RequestPostProcessor CUSTOMER = userWithRealmRoles("CUSTOMER");
+
     @Autowired
     MockMvc mvc;
+
+    @Test
+    void readsArePublicButChangesRequireAdmin() throws Exception {
+        String brand = "{\"name\":\"Security Test Brand\"}";
+        mvc.perform(get("/api/catalog/brands")).andExpect(status().isOk());
+        mvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
+
+        mvc.perform(post("/api/catalog/brands").contentType(MediaType.APPLICATION_JSON).content(brand))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/catalog/brands").with(CUSTOMER).contentType(MediaType.APPLICATION_JSON).content(brand))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/catalog/brands/1").with(CUSTOMER)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/catalog/brands").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(brand))
+                .andExpect(status().isCreated());
+    }
 
     @Test
     void createsCatalogAndFiltersProductsByCategoryBranch() throws Exception {
         long informatique = createCategory("{\"name\":\"Informatique\"}");
         long laptops = createCategory("{\"name\":\"PC Portables\",\"parentId\":" + informatique + "}");
-        long brand = idOf(mvc.perform(post("/api/catalog/brands").contentType(MediaType.APPLICATION_JSON)
+        long brand = idOf(mvc.perform(post("/api/catalog/brands").with(ADMIN).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Lenovo\"}")).andExpect(status().isCreated()).andReturn().getResponse()
                 .getContentAsString());
 
@@ -42,7 +67,7 @@ class CatalogApiIntegrationTest {
                  "images":[{"url":"https://img.example/ip3-front.jpg"},{"url":"https://img.example/ip3-side.jpg"}],
                  "specs":[{"name":"Processeur","value":"Intel Core i5"},{"name":"RAM","value":"16 Go"}]}
                 """.formatted(laptops, brand);
-        String created = mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON).content(product))
+        String created = mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(product))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.slug").value("pc-portable-lenovo-ideapad-3"))
@@ -77,7 +102,7 @@ class CatalogApiIntegrationTest {
 
     @Test
     void rejectsInvalidPayloadsWithFieldErrors() throws Exception {
-        mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"price\":-1}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.name").exists())
@@ -92,28 +117,28 @@ class CatalogApiIntegrationTest {
         String phone = """
                 {"name":"Galaxy A55","sku":"SAM-A55","price":1299,"stockQuantity":0,"categoryId":%d}
                 """.formatted(category);
-        mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON).content(phone))
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(phone))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.inStock").value(false));
 
         // Duplicate SKU
-        mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON).content(phone))
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(phone))
                 .andExpect(status().isConflict());
         // Discount must be lower than price
-        mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON).content("""
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content("""
                         {"name":"X","sku":"SAM-X","price":100,"discountPrice":150,"stockQuantity":1,"categoryId":%d}
                         """.formatted(category)))
                 .andExpect(status().isBadRequest());
         // Unknown category referenced in the payload
-        mvc.perform(post("/api/catalog/products").contentType(MediaType.APPLICATION_JSON).content("""
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content("""
                         {"name":"Y","sku":"SAM-Y","price":100,"stockQuantity":1,"categoryId":999999}
                         """))
                 .andExpect(status().isBadRequest());
         // A category that still has products cannot be deleted
-        mvc.perform(delete("/api/catalog/categories/" + category)).andExpect(status().isConflict());
+        mvc.perform(delete("/api/catalog/categories/" + category).with(ADMIN)).andExpect(status().isConflict());
         // A category cannot become its own descendant
         long child = createCategory("{\"name\":\"Android\",\"parentId\":" + category + "}");
-        mvc.perform(put("/api/catalog/categories/" + category).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/catalog/categories/" + category).with(ADMIN).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Smartphones\",\"parentId\":" + child + "}"))
                 .andExpect(status().isBadRequest());
         // Unknown ids and sort fields
@@ -135,7 +160,7 @@ class CatalogApiIntegrationTest {
     }
 
     private long createCategory(String json) throws Exception {
-        return idOf(mvc.perform(post("/api/catalog/categories").contentType(MediaType.APPLICATION_JSON).content(json))
+        return idOf(mvc.perform(post("/api/catalog/categories").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
     }
 
@@ -143,6 +168,11 @@ class CatalogApiIntegrationTest {
         ResultMatcher count = jsonPath("$.totalElements").value(expected);
         mvc.perform(get("/api/catalog/products").param(param, value).param("categoryId", String.valueOf(categoryId)))
                 .andExpect(count);
+    }
+
+    private static RequestPostProcessor userWithRealmRoles(String... roles) {
+        return jwt().jwt(token -> token.claim("realm_access", Map.of("roles", List.of(roles))))
+                .authorities(new KeycloakRolesConverter());
     }
 
     private static long idOf(String json) {

@@ -23,5 +23,31 @@ services:
       timeout: 3s
       retries: 10
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    container_name: la3bakbira-keycloak
+    restart: unless-stopped
+    # start-dev: HTTP allowed, no build step. --import-realm loads ./keycloak/*.json if the realm doesn't exist yet
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: ${POSTGRES_USER:-la3bakbira}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-la3bakbira}
+      # Public URL used in tokens ("iss" claim) and redirects
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_HOST_PORT:-8180}
+      # Containers may call Keycloak by its internal name (http://keycloak:8080)
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:

@@ -22,8 +22,15 @@ Maven does not need to be installed: the backend uses the Maven Wrapper (`mvnw`)
 ```bash
 cd infra/docker
 cp .env.example .env        # first time only (Windows: copy .env.example .env)
-docker compose up -d        # PostgreSQL 16 on localhost:5433
+docker compose up -d        # PostgreSQL 16 on localhost:5433, Keycloak on localhost:8180
 ```
+
+Keycloak imports the `la3bakbira` realm from `infra/docker/keycloak/realm-la3bakbira.json`
+on first start (roles, clients, test users). Admin console: http://localhost:8180/admin
+(master admin `admin` / `admin`, development only).
+
+> If your PostgreSQL volume was created before Keycloak was added, create its database once:
+> `docker exec la3bakbira-postgres psql -U la3bakbira -d postgres -c "CREATE DATABASE keycloak_db;"`
 
 ## 2. Build the backend
 
@@ -50,19 +57,56 @@ java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 | api-gateway      | 8080         | http://localhost:8080/actuator/health   |
 | catalog-service  | 8081         | http://localhost:8081/actuator/health   |
 | PostgreSQL       | 5433         | `docker compose ps`                     |
+| Keycloak         | 8180         | http://localhost:8180/realms/la3bakbira |
 
 If a port is taken on your machine, append `--server.port=XXXX` (or set `SERVER_PORT`).
 The Eureka address can be changed with `EUREKA_URL`, and the database with
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`. Keycloak URLs: `KEYCLOAK_ISSUER_URI`, `KEYCLOAK_JWK_SET_URI`.
+
+## Security
+
+Authentication is handled by Keycloak (OpenID Connect). The gateway and each service validate the
+JWT access token (signature, issuer `http://localhost:8180/realms/la3bakbira`, audience `la3bakbira-api`)
+and read the realm roles from `realm_access.roles`.
+
+| Who              | Can do                                        |
+|------------------|-----------------------------------------------|
+| Anyone           | Browse the catalog (`GET /api/catalog/**`), API docs, health |
+| `CUSTOMER`       | (cart and orders – coming with order-service) |
+| `ADMIN`          | Create, update, delete catalog data; gateway management endpoints |
+
+New users who sign up get the `CUSTOMER` role automatically.
+
+**Test users (development only):**
+
+| User                     | Password       | Roles            |
+|--------------------------|----------------|------------------|
+| `admin@la3bakbira.tn`    | `Admin@123`    | ADMIN, CUSTOMER  |
+| `customer@la3bakbira.tn` | `Customer@123` | CUSTOMER         |
+
+**Keycloak clients:** `la3bakbira-frontend` (Angular, PKCE), `la3bakbira-swagger` (Swagger UI, PKCE),
+`la3bakbira-cli` (password grant for scripts/tests – development only).
+
+Get a token from the command line:
+
+```bash
+curl -s -X POST http://localhost:8180/realms/la3bakbira/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=la3bakbira-cli \
+  -d username=admin@la3bakbira.tn -d password=Admin@123
+# then: curl -H "Authorization: Bearer <access_token>" ...
+```
 
 ## API documentation (Swagger UI)
 
 With the services running, open **http://localhost:8080/swagger-ui.html** (served by the gateway).
 Pick a service in the top-right "Select a definition" list, then use **Try it out** to send real
-requests through the gateway. Each service publishes its OpenAPI 3 description at `/v3/api-docs`;
+requests through the gateway. To call protected endpoints, click **Authorize**, then **Authorize**
+again in the dialog (client `la3bakbira-swagger` is pre-filled) and log in with a test user. Each service publishes its OpenAPI 3 description at `/v3/api-docs`;
 the gateway exposes them as `/docs/<service-name>/v3/api-docs`.
 
 ## Catalog API (through the gateway)
+
+All `GET` endpoints are public; `POST`, `PUT` and `DELETE` require a token with the `ADMIN` role.
 
 | Method | Path                                   | Purpose |
 |--------|----------------------------------------|---------|
@@ -86,4 +130,5 @@ Prices are in TND with 3 decimals.
 - [x] Step 2 – Backend skeleton: Maven multi-module, Eureka discovery-server, API gateway
 - [x] Step 3 – catalog-service (categories, brands, products) with PostgreSQL
 - [x] Step 4 – Swagger / OpenAPI documentation (aggregated on the gateway)
-- [ ] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)
+- [x] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)
+- [ ] Step 6 – Angular frontend foundation

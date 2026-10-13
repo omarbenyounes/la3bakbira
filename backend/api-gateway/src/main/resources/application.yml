@@ -21,6 +21,14 @@ spring:
                 - Path=/docs/catalog-service/v3/api-docs
               filters:
                 - RewritePath=/docs/catalog-service/v3/api-docs, /v3/api-docs
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Same validation as the services: Keycloak realm issuer + audience la3bakbira-api
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/la3bakbira}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/la3bakbira/protocol/openid-connect/certs}
+          audiences: la3bakbira-api
 
 # Single Swagger UI for all services: http://localhost:8080/swagger-ui.html
 springdoc:
@@ -30,6 +38,12 @@ springdoc:
     urls:
       - name: catalog-service
         url: /docs/catalog-service/v3/api-docs
+    # "Authorize" button: Keycloak login (authorization code + PKCE) with the public Swagger client
+    oauth:
+      client-id: la3bakbira-swagger
+      use-pkce-with-authorization-code-grant: true
+      scopes: openid
+    persist-authorization: true
 
 eureka:
   client:

@@ -1,0 +1,141 @@
+{
+  "realm": "la3bakbira",
+  "displayName": "la3bakbira",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "Store administrator: full access to the admin dashboard" },
+      { "name": "CUSTOMER", "description": "Registered customer: cart, orders, account" },
+      { "name": "offline_access", "description": "${role_offline-access}" },
+      { "name": "uma_authorization", "description": "${role_uma_authorization}" },
+      {
+        "name": "default-roles-la3bakbira",
+        "description": "Given to every new user (self-registration included)",
+        "composite": true,
+        "composites": {
+          "realm": ["offline_access", "uma_authorization", "CUSTOMER"],
+          "client": { "account": ["view-profile", "manage-account"] }
+        }
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-la3bakbira",
+    "description": "Given to every new user (self-registration included)",
+    "composite": true
+  },
+  "clients": [
+    {
+      "clientId": "la3bakbira-frontend",
+      "name": "Angular storefront and admin dashboard",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*"],
+      "webOrigins": ["http://localhost:4200"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "la3bakbira-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "la3bakbira-swagger",
+      "name": "Swagger UI on the API gateway",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:8080/swagger-ui/*", "http://localhost:8090/swagger-ui/*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "la3bakbira-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "la3bakbira-cli",
+      "name": "DEVELOPMENT ONLY - scripted token retrieval (password grant)",
+      "description": "Lets scripts and manual tests obtain tokens with username/password. Do not create in production.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "la3bakbira-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@la3bakbira.tn",
+      "email": "admin@la3bakbira.tn",
+      "emailVerified": true,
+      "firstName": "Store",
+      "lastName": "Admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Admin@123", "temporary": false }],
+      "realmRoles": ["default-roles-la3bakbira", "ADMIN"]
+    },
+    {
+      "username": "customer@la3bakbira.tn",
+      "email": "customer@la3bakbira.tn",
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "Customer",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Customer@123", "temporary": false }],
+      "realmRoles": ["default-roles-la3bakbira"]
+    }
+  ]
+}

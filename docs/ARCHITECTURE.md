@@ -72,7 +72,19 @@ means no global installation is required.
 
 Each business service owns its own database (no cross-service table access).
 
-## 4. Frontend
+## 4. Security
+
+- **Keycloak 26** realm `la3bakbira` (imported from `infra/docker/keycloak/realm-la3bakbira.json`).
+  Realm roles `ADMIN` and `CUSTOMER`; `CUSTOMER` is part of the default role, so self-registered
+  users get it automatically.
+- Browser clients (Angular, Swagger UI) use the **authorization code flow with PKCE** as public clients.
+- Every access token carries the audience `la3bakbira-api` (audience mapper on each client).
+- The **gateway and every service** are OAuth2 resource servers: they verify the JWT signature
+  (Keycloak JWKS), issuer and audience, and map `realm_access.roles` to Spring roles (`ROLE_ADMIN`...).
+  Rules are enforced at the gateway *and* repeated in each service (defence in depth).
+- Catalog: `GET` is public, writes need `ADMIN`.
+
+## 5. Frontend
 
 A single Angular application with two areas:
 
@@ -80,7 +92,7 @@ A single Angular application with two areas:
 - **Admin dashboard** (`/admin`, lazy-loaded, `ADMIN` role required): manage categories,
   products, offers, banners, orders, store settings.
 
-## 5. Repository layout
+## 6. Repository layout
 
 ```
 la3bakbira/

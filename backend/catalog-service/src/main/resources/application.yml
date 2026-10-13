@@ -24,6 +24,20 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Tokens must come from this Keycloak realm ("iss") and be meant for our API ("aud")
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/la3bakbira}
+          # Where signing keys are fetched; may differ from issuer inside Docker/Kubernetes
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/la3bakbira/protocol/openid-connect/certs}
+          audiences: la3bakbira-api
+
+app:
+  openapi:
+    # Public Keycloak realm URL used by Swagger UI's "Authorize" button
+    oauth2-realm-url: ${KEYCLOAK_PUBLIC_REALM_URL:http://localhost:8180/realms/la3bakbira}
 
 springdoc:
   # Only the JSON description is served here; Swagger UI lives on the gateway
