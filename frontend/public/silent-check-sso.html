@@ -1,0 +1,9 @@
+<!doctype html>
+<html>
+  <body>
+    <!-- Loaded in a hidden iframe by keycloak-js to detect an existing Keycloak session without a full redirect -->
+    <script>
+      parent.postMessage(location.href, location.origin);
+    </script>
+  </body>
+</html>

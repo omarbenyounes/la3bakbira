@@ -34,7 +34,7 @@ with a public storefront and an administration dashboard that controls the whole
 
 | Concern            | Choice                                         |
 |--------------------|------------------------------------------------|
-| Frontend           | Angular 21 (standalone components), TypeScript, Bootstrap 5 + Angular Material |
+| Frontend           | Angular 22 (standalone components, signals), TypeScript, Bootstrap 5 + Angular Material, keycloak-angular |
 | Backend runtime    | Java 21 (LTS)                                  |
 | Backend framework  | Spring Boot 4.1.1, Spring Cloud 2025.1.3 (Gateway 5 – WebFlux, Eureka 5) |
 | Persistence        | PostgreSQL 16, Spring Data JPA, Hibernate       |
@@ -86,11 +86,23 @@ Each business service owns its own database (no cross-service table access).
 
 ## 5. Frontend
 
-A single Angular application with two areas:
+A single Angular 22 application (standalone components, signals, French UI) with two areas:
 
 - **Storefront** (public): home, category browsing, product details, search, cart, checkout, account.
 - **Admin dashboard** (`/admin`, lazy-loaded, `ADMIN` role required): manage categories,
   products, offers, banners, orders, store settings.
+
+Styling: Bootstrap 5 (grid, utilities) + Angular Material (menus, icons, form controls, tables).
+
+Authentication: `keycloak-angular` / `keycloak-js` with the `la3bakbira-frontend` public client
+(authorization code + PKCE). `check-sso` restores an existing session silently, so visitors can browse
+anonymously. The access token is attached only to requests to `/api/**`, and refreshed automatically
+while the user is active (logout after 30 minutes of inactivity). `adminGuard` sends visitors to the
+Keycloak login page and users without `ADMIN` to `/acces-refuse`.
+
+API access: the app calls relative `/api/**` URLs. In development the Angular dev server proxies them
+to the gateway; in production a web server (nginx) in front of the app will do the same. The browser
+therefore stays on a single origin and the gateway needs no CORS configuration.
 
 ## 6. Repository layout
 

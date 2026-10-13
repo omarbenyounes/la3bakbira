@@ -1,0 +1,40 @@
+import { Component, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { AuthService } from '../../core/auth/auth.service';
+import { CategoryTreeStore } from '../../core/catalog/category-tree.store';
+
+@Component({
+  selector: 'app-header',
+  imports: [RouterLink, MatBadgeModule, MatButtonModule, MatIconModule, MatMenuModule],
+  templateUrl: './header.html',
+  styleUrl: './header.scss',
+})
+export class Header {
+  protected readonly auth = inject(AuthService);
+  protected readonly categories = inject(CategoryTreeStore).tree;
+  protected readonly mobileMenuOpen = signal(false);
+  private readonly router = inject(Router);
+
+  constructor() {
+    // Close the mobile menu after navigating
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.mobileMenuOpen.set(false));
+  }
+
+  protected search(query: string): void {
+    const q = query.trim();
+    if (q) {
+      this.router.navigate(['/recherche'], { queryParams: { q } });
+    }
+  }
+}

@@ -10,8 +10,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the architecture and techno
 | Tool            | Version          |
 |-----------------|------------------|
 | JDK             | 21               |
-| Node.js / npm   | 20+ / 10+        |
-| Angular CLI     | 17+              |
+| Node.js / npm   | 24.15+ / 11+     |
 | Docker Desktop  | with Compose v2  |
 | Git             | 2.x              |
 
@@ -62,6 +61,30 @@ java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 If a port is taken on your machine, append `--server.port=XXXX` (or set `SERVER_PORT`).
 The Eureka address can be changed with `EUREKA_URL`, and the database with
 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`. Keycloak URLs: `KEYCLOAK_ISSUER_URI`, `KEYCLOAK_JWK_SET_URI`.
+
+## 4. Run the frontend
+
+Requires Node.js 24.15+ (Angular 22). From `frontend/`:
+
+```bash
+npm install                  # first time only
+npm start                    # http://localhost:4200
+```
+
+The dev server forwards `/api/**` to the gateway (see `frontend/proxy.conf.mjs`), so the browser only
+talks to `localhost:4200`. If the gateway is not on port 8080:
+
+```bash
+API_GATEWAY_URL=http://localhost:8090 npm start          # Linux/macOS/Git Bash
+$env:API_GATEWAY_URL="http://localhost:8090"; npm start  # PowerShell
+```
+
+Other commands: `npm test` (unit tests, Vitest), `npm run build` (production build in `dist/`).
+
+| URL                         | What                                          |
+|-----------------------------|-----------------------------------------------|
+| http://localhost:4200       | Storefront (category menu from the catalog)   |
+| http://localhost:4200/admin | Admin dashboard (`ADMIN` role, Keycloak login) |
 
 ## Security
 
@@ -131,4 +154,5 @@ Prices are in TND with 3 decimals.
 - [x] Step 3 – catalog-service (categories, brands, products) with PostgreSQL
 - [x] Step 4 – Swagger / OpenAPI documentation (aggregated on the gateway)
 - [x] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)
-- [ ] Step 6 – Angular frontend foundation
+- [x] Step 6 – Angular frontend foundation (layout, category menu, Keycloak login, admin guard)
+- [ ] Step 7 – Admin: catalog management (categories, brands, products)

@@ -1,0 +1,90 @@
+<div class="topbar">
+  <div class="container d-flex justify-content-between py-1">
+    <span>Livraison partout en Tunisie</span>
+    <span class="d-none d-md-inline">Service client : +216 70 000 000</span>
+  </div>
+</div>
+
+<header class="main-header">
+  <div class="container d-flex flex-wrap align-items-center gap-3 py-3">
+    <a routerLink="/" class="logo" aria-label="Accueil la3bakbira">la3bak<span>bira</span></a>
+
+    <form class="search order-last order-lg-0" role="search" (submit)="$event.preventDefault(); search(q.value)">
+      <input #q name="q" type="search" placeholder="Rechercher un produit, une marque, une référence…" aria-label="Rechercher" />
+      <button type="submit" aria-label="Lancer la recherche"><mat-icon>search</mat-icon></button>
+    </form>
+
+    <div class="actions ms-auto d-flex align-items-center gap-2">
+      @if (auth.authenticated()) {
+        <button mat-button [matMenuTriggerFor]="userMenu" class="account-btn">
+          <mat-icon>account_circle</mat-icon>
+          <span class="d-none d-sm-inline">{{ auth.displayName() }}</span>
+        </button>
+        <mat-menu #userMenu="matMenu" xPosition="before">
+          <button mat-menu-item (click)="auth.manageAccount()"><mat-icon>person</mat-icon>Mon compte</button>
+          @if (auth.isAdmin()) {
+            <a mat-menu-item routerLink="/admin"><mat-icon>dashboard</mat-icon>Administration</a>
+          }
+          <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Se déconnecter</button>
+        </mat-menu>
+      } @else {
+        <button mat-button (click)="auth.login()" class="account-btn">
+          <mat-icon>person_outline</mat-icon>
+          <span class="d-none d-sm-inline">Se connecter</span>
+        </button>
+        <button mat-stroked-button (click)="auth.register()" class="d-none d-md-inline-flex">Créer un compte</button>
+      }
+      <button mat-icon-button aria-label="Panier" title="Panier">
+        <mat-icon aria-hidden="false" matBadge="0" matBadgeSize="small" matBadgeColor="warn"
+                  matBadgeDescription="articles dans le panier">shopping_cart</mat-icon>
+      </button>
+    </div>
+  </div>
+</header>
+
+<nav class="category-bar" aria-label="Catégories">
+  <div class="container">
+    <button class="menu-toggle d-lg-none" type="button" (click)="mobileMenuOpen.set(!mobileMenuOpen())"
+            [attr.aria-expanded]="mobileMenuOpen()">
+      <mat-icon>{{ mobileMenuOpen() ? 'close' : 'menu' }}</mat-icon> Catégories
+    </button>
+
+    @switch (categories()) {
+      @case (undefined) {
+        <span class="menu-status">Chargement des catégories…</span>
+      }
+      @case (null) {
+        <span class="menu-status">Catégories momentanément indisponibles</span>
+      }
+      @default {
+        <ul class="top-level" [class.open]="mobileMenuOpen()">
+          @for (top of categories(); track top.id) {
+            <li class="top-item">
+              <a [routerLink]="['/categorie', top.slug]">{{ top.name }}</a>
+              @if (top.children.length) {
+                <div class="mega">
+                  <div class="container mega-grid">
+                    @for (sub of top.children; track sub.id) {
+                      <div>
+                        <a class="mega-title" [routerLink]="['/categorie', sub.slug]">{{ sub.name }}</a>
+                        @if (sub.children.length) {
+                          <ul>
+                            @for (leaf of sub.children; track leaf.id) {
+                              <li><a [routerLink]="['/categorie', leaf.slug]">{{ leaf.name }}</a></li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </li>
+          } @empty {
+            <li class="menu-status">Aucune catégorie pour le moment</li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</nav>
