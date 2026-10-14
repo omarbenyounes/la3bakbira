@@ -1,0 +1,44 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+
+  mat-form-field {
+    width: 200px;
+  }
+
+  .search {
+    flex: 1 1 260px;
+  }
+}
+
+.progress-placeholder {
+  height: 4px;
+}
+
+.thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+
+  &.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+  }
+}
+
+.product-name {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--brand-primary);
+  }
+}

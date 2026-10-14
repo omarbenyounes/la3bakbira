@@ -1,0 +1,53 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+  text-decoration: none;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.section {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.field-error {
+  margin: -0.5rem 0 0.75rem;
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 0.75rem;
+}
+
+.image-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preview {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  object-fit: contain;
+
+  &.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+  }
+}

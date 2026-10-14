@@ -57,6 +57,17 @@ body {
   --bs-btn-hover-border-color: var(--brand-dark);
 }
 
+// Toast colours used by Notifier
+.snack-success {
+  --mat-snack-bar-container-color: #1b5e20;
+  --mat-snack-bar-button-color: #c8e6c9;
+}
+
+.snack-error {
+  --mat-snack-bar-container-color: #b71c1c;
+  --mat-snack-bar-button-color: #ffcdd2;
+}
+
 .btn-outline-primary {
   --bs-btn-color: var(--brand-primary);
   --bs-btn-border-color: var(--brand-primary);

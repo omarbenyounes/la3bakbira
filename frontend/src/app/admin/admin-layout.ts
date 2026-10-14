@@ -11,9 +11,11 @@ import { MatIconModule } from '@angular/material/icon';
       <aside class="sidebar">
         <div class="sidebar-title">Administration</div>
         <nav>
-          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            <mat-icon>dashboard</mat-icon>Tableau de bord
-          </a>
+          @for (section of sections; track section.label) {
+            <a [routerLink]="section.link" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: section.exact }">
+              <mat-icon>{{ section.icon }}</mat-icon>{{ section.label }}
+            </a>
+          }
           @for (section of upcoming; track section.label) {
             <span class="disabled" title="Disponible prochainement"><mat-icon>{{ section.icon }}</mat-icon>{{ section.label }}</span>
           }
@@ -36,10 +38,13 @@ import { MatIconModule } from '@angular/material/icon';
   `,
 })
 export class AdminLayout {
+  protected readonly sections = [
+    { icon: 'dashboard', label: 'Tableau de bord', link: '/admin', exact: true },
+    { icon: 'category', label: 'Catégories', link: '/admin/categories', exact: false },
+    { icon: 'inventory_2', label: 'Produits', link: '/admin/produits', exact: false },
+    { icon: 'sell', label: 'Marques', link: '/admin/marques', exact: false },
+  ];
   protected readonly upcoming = [
-    { icon: 'category', label: 'Catégories' },
-    { icon: 'inventory_2', label: 'Produits' },
-    { icon: 'sell', label: 'Marques' },
     { icon: 'local_offer', label: 'Offres' },
     { icon: 'receipt_long', label: 'Commandes' },
   ];

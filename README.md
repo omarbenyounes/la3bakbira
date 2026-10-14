@@ -86,6 +86,17 @@ Other commands: `npm test` (unit tests, Vitest), `npm run build` (production bui
 | http://localhost:4200       | Storefront (category menu from the catalog)   |
 | http://localhost:4200/admin | Admin dashboard (`ADMIN` role, Keycloak login) |
 
+### Admin dashboard
+
+| Section     | URL                        | Features |
+|-------------|----------------------------|----------|
+| Catégories  | `/admin/categories`        | Tree view; create, add sub-category, edit (name, slug, parent, image, description, active), reorder (up/down), delete (refused while it has sub-categories or products). The storefront menu updates immediately. |
+| Marques     | `/admin/marques`           | List, create, edit (logo URL with preview), delete (refused while used by products). |
+| Produits    | `/admin/produits`          | Paginated table with search (name/SKU), category/brand/status filters and sorting; create/edit form with prices (TND, 3 decimals), discount check, stock, category, brand, visibility, featured flag, ordered images (first = main) and technical sheet; delete. |
+
+Server-side errors (duplicate SKU or slug, entity still in use, validation) are shown next to the
+field or as a message at the bottom of the screen.
+
 ## Security
 
 Authentication is handled by Keycloak (OpenID Connect). The gateway and each service validate the
@@ -155,4 +166,5 @@ Prices are in TND with 3 decimals.
 - [x] Step 4 – Swagger / OpenAPI documentation (aggregated on the gateway)
 - [x] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)
 - [x] Step 6 – Angular frontend foundation (layout, category menu, Keycloak login, admin guard)
-- [ ] Step 7 – Admin: catalog management (categories, brands, products)
+- [x] Step 7 – Admin: catalog management (categories, brands, products)
+- [ ] Step 8 – Storefront: product listing, filters and product page
