@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tn.la3bakbira.catalog.common.PageResponse;
+import tn.la3bakbira.catalog.product.ProductDtos.ProductFacets;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductFilter;
+import tn.la3bakbira.catalog.security.CurrentUser;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductRequest;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductResponse;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductSummary;
@@ -37,24 +39,35 @@ public class ProductController {
 
     @Operation(summary = "Search products",
             description = "All filters are optional and combined. Filtering by category includes its sub-categories; "
-                    + "price filters apply to the discounted price. Sort example: price,asc")
+                    + "brandId may be repeated; price filters apply to the price actually paid. "
+                    + "Sort examples: effectivePrice,asc · createdAt,desc · name,asc. "
+                    + "Only ADMIN users see inactive products.")
     @GetMapping
     public PageResponse<ProductSummary> search(@ParameterObject ProductFilter filter,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return service.search(filter, pageable);
+        return service.search(filter, pageable, CurrentUser.isAdmin());
     }
 
-    @Operation(summary = "Get a product by id")
+    @Operation(summary = "Filter options for a listing",
+            description = "Brands present among the matching products (with counts) and the price range. "
+                    + "Brand and price filters are ignored so the other options stay visible.")
+    @GetMapping("/facets")
+    public ProductFacets facets(@ParameterObject ProductFilter filter) {
+        return service.facets(filter, CurrentUser.isAdmin());
+    }
+
+    @Operation(summary = "Get a product by id", description = "Inactive products: 404 unless ADMIN")
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
-        return service.get(id);
+        return service.get(id, CurrentUser.isAdmin());
     }
 
-    @Operation(summary = "Get a product by slug", description = "Used by the storefront product page URLs")
+    @Operation(summary = "Get a product by slug", description = "Used by the storefront product page URLs. "
+            + "Inactive products: 404 unless ADMIN")
     @GetMapping("/slug/{slug}")
     public ProductResponse getBySlug(@PathVariable String slug) {
-        return service.getBySlug(slug);
+        return service.getBySlug(slug, CurrentUser.isAdmin());
     }
 
     @Operation(summary = "Create a product", description = "A blank slug is generated from the name")

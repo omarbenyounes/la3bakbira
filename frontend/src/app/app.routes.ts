@@ -12,6 +12,11 @@ export const routes: Routes = [
     title: 'Catégorie – la3bakbira',
   },
   {
+    path: 'produit/:slug',
+    loadComponent: () => import('./pages/product/product-page').then((m) => m.ProductPage),
+    title: 'Produit – la3bakbira',
+  },
+  {
     path: 'recherche',
     loadComponent: () => import('./pages/search/search-page').then((m) => m.SearchPage),
     title: 'Recherche – la3bakbira',

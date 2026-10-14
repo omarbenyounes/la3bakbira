@@ -109,8 +109,8 @@
 }
 
 @media (min-width: 992px) {
-  .top-item:hover .mega,
-  .top-item:focus-within .mega {
+  .category-bar:not(.mega-suppressed) .top-item:hover .mega,
+  .category-bar:not(.mega-suppressed) .top-item:focus-within .mega {
     display: block;
   }
 }

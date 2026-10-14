@@ -3,6 +3,7 @@ package tn.la3bakbira.catalog.product;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Root;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -29,8 +30,8 @@ final class ProductFilters {
         if (categoryIds != null) {
             specs.add((root, query, cb) -> root.get("category").get("id").in(categoryIds));
         }
-        if (filter.brandId() != null) {
-            specs.add((root, query, cb) -> cb.equal(root.get("brand").get("id"), filter.brandId()));
+        if (filter.brandId() != null && !filter.brandId().isEmpty()) {
+            specs.add((root, query, cb) -> root.get("brand").get("id").in(filter.brandId()));
         }
         if (filter.minPrice() != null) {
             specs.add((root, query, cb) -> cb.greaterThanOrEqualTo(effectivePrice(root, cb), filter.minPrice()));
@@ -50,7 +51,22 @@ final class ProductFilters {
         return Specification.allOf(specs);
     }
 
-    private static Expression<BigDecimal> effectivePrice(Root<Product> root, CriteriaBuilder cb) {
+    /**
+     * Orders by the price the customer pays (discount price if any). Not expressible as a Pageable sort,
+     * so it is added to the query itself; skipped for the count query.
+     */
+    static Specification<Product> orderByEffectivePrice(Sort.Direction direction) {
+        return (root, query, cb) -> {
+            Class<?> resultType = query.getResultType();
+            if (resultType != Long.class && resultType != long.class) {
+                Expression<BigDecimal> price = effectivePrice(root, cb);
+                query.orderBy(direction.isAscending() ? cb.asc(price) : cb.desc(price), cb.asc(root.get("id")));
+            }
+            return null;
+        };
+    }
+
+    static Expression<BigDecimal> effectivePrice(Root<Product> root, CriteriaBuilder cb) {
         return cb.coalesce(root.<BigDecimal>get("discountPrice"), root.<BigDecimal>get("price"));
     }
 }

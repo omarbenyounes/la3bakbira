@@ -41,16 +41,36 @@ public final class ProductDtos {
     public record SpecDto(@NotBlank @Size(max = 100) String name, @NotBlank @Size(max = 500) String value) {
     }
 
-    /** Query parameters of GET /api/catalog/products; all optional. */
+    /**
+     * Query parameters of GET /api/catalog/products; all optional.
+     * {@code brandId} may be repeated (?brandId=1&brandId=2) to match any of the brands.
+     */
     public record ProductFilter(
             String q,
             Long categoryId,
-            Long brandId,
+            List<Long> brandId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Boolean inStock,
             Boolean featured,
             Boolean active) {
+
+        /** Shoppers (non-admin) only ever see active products, whatever they ask for. */
+        ProductFilter visibleTo(boolean admin) {
+            return admin ? this : new ProductFilter(q, categoryId, brandId, minPrice, maxPrice, inStock, featured, true);
+        }
+
+        /** Facets describe what the other filters could still select, so brand and price are ignored. */
+        ProductFilter withoutBrandAndPrice() {
+            return new ProductFilter(q, categoryId, null, null, null, inStock, featured, active);
+        }
+    }
+
+    public record BrandFacet(Long id, String name, String slug, long count) {
+    }
+
+    /** Filter options for a listing: brands present (with product counts) and the effective price range. */
+    public record ProductFacets(List<BrandFacet> brands, BigDecimal minPrice, BigDecimal maxPrice, long total) {
     }
 
     public record Ref(Long id, String name, String slug) {

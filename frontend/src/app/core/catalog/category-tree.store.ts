@@ -23,6 +23,20 @@ export class CategoryTreeStore {
     this.reload$.next();
   }
 
+  /** Nodes from the top-level category down to the given one (for breadcrumbs); empty if unknown. */
+  pathTo(id: number, nodes: CategoryTreeNode[] = this.tree() ?? []): CategoryTreeNode[] {
+    for (const node of nodes) {
+      if (node.id === id) {
+        return [node];
+      }
+      const sub = this.pathTo(id, node.children);
+      if (sub.length) {
+        return [node, ...sub];
+      }
+    }
+    return [];
+  }
+
   findBySlug(slug: string, nodes: CategoryTreeNode[] = this.tree() ?? []): CategoryTreeNode | undefined {
     for (const node of nodes) {
       if (node.slug === slug) {

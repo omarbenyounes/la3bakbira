@@ -1,7 +1,8 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { toHttpParams } from '../http/query-params';
 import {
   Brand,
   BrandRequest,
@@ -56,13 +57,7 @@ export class AdminCatalogService {
 
   // Products
   searchProducts(query: ProductQuery): Observable<PageResponse<ProductSummary>> {
-    let params = new HttpParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== null && value !== '') {
-        params = params.set(key, String(value));
-      }
-    }
-    return this.http.get<PageResponse<ProductSummary>>(`${this.baseUrl}/products`, { params });
+    return this.http.get<PageResponse<ProductSummary>>(`${this.baseUrl}/products`, { params: toHttpParams(query) });
   }
 
   getProduct(id: number): Observable<Product> {

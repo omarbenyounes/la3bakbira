@@ -1,6 +1,9 @@
 package tn.la3bakbira.catalog.product;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.la3bakbira.catalog.brand.BrandService;
@@ -10,6 +13,7 @@ import tn.la3bakbira.catalog.common.ConflictException;
 import tn.la3bakbira.catalog.common.NotFoundException;
 import tn.la3bakbira.catalog.common.PageResponse;
 import tn.la3bakbira.catalog.common.Slugs;
+import tn.la3bakbira.catalog.product.ProductDtos.ProductFacets;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductFilter;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductRequest;
 import tn.la3bakbira.catalog.product.ProductDtos.ProductResponse;
@@ -24,31 +28,63 @@ import java.util.function.Function;
 @Transactional(readOnly = true)
 public class ProductService {
 
+    static final String EFFECTIVE_PRICE = "effectivePrice";
+
     private final ProductRepository products;
+    private final ProductFacetsQuery facetsQuery;
     private final CategoryService categoryService;
     private final BrandService brandService;
 
-    public ProductService(ProductRepository products, CategoryService categoryService, BrandService brandService) {
+    public ProductService(ProductRepository products, ProductFacetsQuery facetsQuery, CategoryService categoryService,
+            BrandService brandService) {
         this.products = products;
+        this.facetsQuery = facetsQuery;
         this.categoryService = categoryService;
         this.brandService = brandService;
     }
 
-    /** Filtering by a category includes all of its sub-categories. */
-    public PageResponse<ProductSummary> search(ProductFilter filter, Pageable pageable) {
+    /**
+     * Filtering by a category includes all of its sub-categories. Non-admins only get active products.
+     * Sort property "effectivePrice" orders by the price actually paid (discount price if any).
+     */
+    public PageResponse<ProductSummary> search(ProductFilter filter, Pageable pageable, boolean admin) {
+        Specification<Product> spec = specFor(filter.visibleTo(admin));
+        Sort.Order byEffectivePrice = pageable.getSort().getOrderFor(EFFECTIVE_PRICE);
+        if (byEffectivePrice != null) {
+            Sort otherOrders = Sort.by(pageable.getSort().stream()
+                    .filter(order -> !EFFECTIVE_PRICE.equals(order.getProperty())).toList());
+            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), otherOrders);
+            spec = spec.and(ProductFilters.orderByEffectivePrice(byEffectivePrice.getDirection()));
+        }
+        return PageResponse.of(products.findAll(spec, pageable).map(ProductSummary::from));
+    }
+
+    /** Brands (with counts) and price range of the products matching the filter, ignoring brand/price filters. */
+    public ProductFacets facets(ProductFilter filter, boolean admin) {
+        return facetsQuery.compute(specFor(filter.visibleTo(admin).withoutBrandAndPrice()));
+    }
+
+    /** Inactive products are reported as not found to non-admins. */
+    public ProductResponse get(Long id, boolean admin) {
+        return ProductResponse.from(visible(load(id), admin, id));
+    }
+
+    public ProductResponse getBySlug(String slug, boolean admin) {
+        Product product = products.findBySlug(slug).orElseThrow(() -> new NotFoundException("Product", slug));
+        return ProductResponse.from(visible(product, admin, slug));
+    }
+
+    private Specification<Product> specFor(ProductFilter filter) {
         Set<Long> categoryIds = filter.categoryId() == null ? null
                 : categoryService.idWithDescendants(filter.categoryId());
-        return PageResponse.of(products.findAll(ProductFilters.of(filter, categoryIds), pageable)
-                .map(ProductSummary::from));
+        return ProductFilters.of(filter, categoryIds);
     }
 
-    public ProductResponse get(Long id) {
-        return ProductResponse.from(load(id));
-    }
-
-    public ProductResponse getBySlug(String slug) {
-        return products.findBySlug(slug).map(ProductResponse::from)
-                .orElseThrow(() -> new NotFoundException("Product", slug));
+    private static Product visible(Product product, boolean admin, Object key) {
+        if (!admin && !product.isActive()) {
+            throw new NotFoundException("Product", key);
+        }
+        return product;
     }
 
     @Transactional

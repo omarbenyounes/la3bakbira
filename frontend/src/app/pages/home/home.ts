@@ -1,11 +1,15 @@
 import { Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
+import { CatalogService } from '../../core/catalog/catalog.service';
 import { CategoryTreeStore } from '../../core/catalog/category-tree.store';
+import { ProductCard } from '../../shop/product-card';
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, MatIconModule],
+  imports: [RouterLink, MatIconModule, ProductCard],
   template: `
     <section class="hero">
       <div class="container py-5">
@@ -13,6 +17,20 @@ import { CategoryTreeStore } from '../../core/catalog/category-tree.store';
         <p class="lead mb-0">Informatique, téléphonie, électroménager… livrés partout en Tunisie.</p>
       </div>
     </section>
+
+    @if (featured().length) {
+      <section class="container pt-5">
+        <div class="d-flex justify-content-between align-items-baseline mb-3">
+          <h2 class="section-title mb-0">Produits en vedette</h2>
+          <a routerLink="/recherche" class="small">Voir tous les produits →</a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+          @for (product of featured(); track product.id) {
+            <div class="col"><app-product-card [product]="product" /></div>
+          }
+        </div>
+      </section>
+    }
 
     <section class="container py-5">
       <h2 class="section-title">Nos catégories</h2>
@@ -61,4 +79,14 @@ import { CategoryTreeStore } from '../../core/catalog/category-tree.store';
 })
 export class Home {
   protected readonly categories = inject(CategoryTreeStore).tree;
+  /** Products flagged "en vedette" in the admin (hidden section when there are none). */
+  protected readonly featured = toSignal(
+    inject(CatalogService)
+      .searchProducts({ featured: true, size: 8, sort: 'createdAt,desc' })
+      .pipe(
+        map((page) => page.content),
+        catchError(() => of([])),
+      ),
+    { initialValue: [] },
+  );
 }

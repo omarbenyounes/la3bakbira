@@ -116,7 +116,8 @@ export interface ProductRequest {
 export interface ProductQuery {
   q?: string;
   categoryId?: number;
-  brandId?: number;
+  /** One or several brands (matches any) */
+  brandId?: number | number[];
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
@@ -124,8 +125,23 @@ export interface ProductQuery {
   active?: boolean;
   page?: number;
   size?: number;
-  /** e.g. "price,asc" */
+  /** e.g. "effectivePrice,asc" (price actually paid), "createdAt,desc", "name,asc" */
   sort?: string;
+}
+
+export interface BrandFacet {
+  id: number;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+/** GET /api/catalog/products/facets: filter options for a listing. */
+export interface ProductFacets {
+  brands: BrandFacet[];
+  minPrice: number | null;
+  maxPrice: number | null;
+  total: number;
 }
 
 export interface PageResponse<T> {

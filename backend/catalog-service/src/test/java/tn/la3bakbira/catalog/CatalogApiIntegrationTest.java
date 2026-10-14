@@ -147,6 +147,58 @@ class CatalogApiIntegrationTest {
     }
 
     @Test
+    void storefrontSeesOnlyActiveProductsWithFacetsAndPriceSorting() throws Exception {
+        long category = createCategory("{\"name\":\"Storefront Test\"}");
+        long asus = createBrand("Storefront Asus");
+        long msi = createBrand("Storefront MSI");
+        // effective prices: A = 900 (discounted from 1500), B = 1000, hidden C = 50
+        createProduct("SF-A", "Laptop A", 1500, 900, category, asus, true);
+        createProduct("SF-B", "Laptop B", 1000, null, category, msi, true);
+        createProduct("SF-C", "Laptop Hidden", 50, null, category, msi, false);
+        String cat = String.valueOf(category);
+
+        // Visitors never see inactive products, even when asking for them
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat)).andExpect(jsonPath("$.totalElements").value(2));
+        // ?active=false is overridden to active=true for visitors: the hidden product never shows up
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).param("active", "false"))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[?(@.sku == 'SF-C')]").isEmpty());
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).with(CUSTOMER))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).with(ADMIN))
+                .andExpect(jsonPath("$.totalElements").value(3));
+        mvc.perform(get("/api/catalog/products/slug/laptop-hidden")).andExpect(status().isNotFound());
+        mvc.perform(get("/api/catalog/products/slug/laptop-hidden").with(CUSTOMER)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/catalog/products/slug/laptop-hidden").with(ADMIN)).andExpect(status().isOk());
+
+        // Sorting by the price actually paid puts the discounted laptop first
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).param("sort", "effectivePrice,asc"))
+                .andExpect(jsonPath("$.content[0].sku").value("SF-A"))
+                .andExpect(jsonPath("$.content[1].sku").value("SF-B"));
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).param("sort", "effectivePrice,desc"))
+                .andExpect(jsonPath("$.content[0].sku").value("SF-B"));
+
+        // Several brands at once
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat)
+                        .param("brandId", String.valueOf(asus)).param("brandId", String.valueOf(msi)))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get("/api/catalog/products").param("categoryId", cat).param("brandId", String.valueOf(asus)))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        // Facets: active products only, brand filter ignored, effective price range
+        mvc.perform(get("/api/catalog/products/facets").param("categoryId", cat).param("brandId", String.valueOf(asus)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.minPrice").value(900.0))
+                .andExpect(jsonPath("$.maxPrice").value(1000.0))
+                .andExpect(jsonPath("$.brands", hasSize(2)))
+                .andExpect(jsonPath("$.brands[?(@.name == 'Storefront MSI')].count").value(1));
+        mvc.perform(get("/api/catalog/products/facets").param("categoryId", cat).with(ADMIN))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.brands[?(@.name == 'Storefront MSI')].count").value(2));
+    }
+
+    @Test
     void publishesOpenApiDescription() throws Exception {
         mvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -162,6 +214,21 @@ class CatalogApiIntegrationTest {
     private long createCategory(String json) throws Exception {
         return idOf(mvc.perform(post("/api/catalog/categories").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    }
+
+    private long createBrand(String name) throws Exception {
+        return idOf(mvc.perform(post("/api/catalog/brands").with(ADMIN).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"" + name + "\"}")).andExpect(status().isCreated()).andReturn().getResponse()
+                .getContentAsString());
+    }
+
+    private void createProduct(String sku, String name, int price, Integer discount, long categoryId, long brandId,
+            boolean active) throws Exception {
+        String json = """
+                {"name":"%s","sku":"%s","price":%d,"discountPrice":%s,"stockQuantity":3,"categoryId":%d,"brandId":%d,"active":%b}
+                """.formatted(name, sku, price, discount, categoryId, brandId, active);
+        mvc.perform(post("/api/catalog/products").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isCreated());
     }
 
     private void expectCount(String param, String value, long categoryId, int expected) throws Exception {

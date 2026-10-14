@@ -42,7 +42,8 @@
   </div>
 </header>
 
-<nav class="category-bar" aria-label="Catégories">
+<nav #categoryBar class="category-bar" aria-label="Catégories" [class.mega-suppressed]="megaSuppressed()"
+     (mouseenter)="pointerInBar.set(true)" (mouseleave)="leaveBar()">
   <div class="container">
     <button class="menu-toggle d-lg-none" type="button" (click)="mobileMenuOpen.set(!mobileMenuOpen())"
             [attr.aria-expanded]="mobileMenuOpen()">

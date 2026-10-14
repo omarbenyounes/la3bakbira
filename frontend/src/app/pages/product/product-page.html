@@ -1,0 +1,105 @@
+<div class="container py-4">
+  @switch (load().status) {
+    @case ('loading') {
+      <p class="text-muted py-5 text-center">Chargement du produit…</p>
+    }
+    @case ('missing') {
+      <div class="py-5 text-center">
+        <h1 class="h4 fw-bold">Produit introuvable</h1>
+        <p class="text-muted">Ce produit n'existe pas ou n'est plus disponible.</p>
+        <a class="btn btn-primary" routerLink="/">Retour à l'accueil</a>
+      </div>
+    }
+    @case ('error') {
+      <p class="text-danger py-5 text-center">Impossible de charger ce produit. Réessayez plus tard.</p>
+    }
+    @case ('found') {
+      @let p = product()!;
+      <app-breadcrumb [items]="crumbs()" />
+
+      <div class="row g-4 product">
+        <!-- Gallery -->
+        <div class="col-12 col-md-6 col-lg-5">
+          <div class="main-image">
+            @if (discount(); as d) { <span class="badge-discount">-{{ d }}%</span> }
+            @if (p.images.length) {
+              <img [src]="p.images[selectedImage()].url" [alt]="p.images[selectedImage()].altText || p.name" />
+            } @else {
+              <mat-icon>image</mat-icon>
+            }
+          </div>
+          @if (p.images.length > 1) {
+            <div class="thumbs">
+              @for (image of p.images; track $index) {
+                <button type="button" [class.active]="$index === selectedImage()" (click)="selectedImage.set($index)"
+                        [attr.aria-label]="'Image ' + ($index + 1)">
+                  <img [src]="image.url" [alt]="image.altText || ''" />
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Buying information -->
+        <div class="col-12 col-md-6 col-lg-7">
+          @if (p.brand) { <div class="brand">{{ p.brand.name }}</div> }
+          <h1 class="name">{{ p.name }}</h1>
+          <div class="ref">Référence : <strong>{{ p.sku }}</strong></div>
+
+          <div class="price-box">
+            <span class="price" [class.promo]="p.discountPrice !== null">{{ p.effectivePrice | tnd }}</span>
+            @if (p.discountPrice !== null) {
+              <span class="old">{{ p.price | tnd }}</span>
+              <span class="save">Économisez {{ p.price - p.discountPrice | tnd }}</span>
+            }
+          </div>
+
+          <div class="stock" [class.out]="!p.inStock">
+            <mat-icon>{{ p.inStock ? 'check_circle' : 'cancel' }}</mat-icon>
+            {{ p.inStock ? 'En stock' : 'Rupture de stock' }}
+          </div>
+
+          @if (p.shortDescription) { <p class="short">{{ p.shortDescription }}</p> }
+
+          <ul class="perks">
+            <li><mat-icon>local_shipping</mat-icon>Livraison partout en Tunisie</li>
+            <li><mat-icon>verified</mat-icon>Produit garanti</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="row g-4 mt-1">
+        @if (p.specs.length) {
+          <section class="col-12 col-lg-6">
+            <h2 class="section-title">Fiche technique</h2>
+            <table class="table table-striped specs mb-0">
+              <tbody>
+                @for (spec of p.specs; track $index) {
+                  <tr><th scope="row">{{ spec.name }}</th><td>{{ spec.value }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+        @if (p.description) {
+          <section class="col-12" [class.col-lg-6]="p.specs.length">
+            <h2 class="section-title">Description</h2>
+            <p class="description">{{ p.description }}</p>
+          </section>
+        }
+      </div>
+
+      @if (similar().length) {
+        <section class="mt-5">
+          <h2 class="section-title">Produits similaires</h2>
+          <div class="row row-cols-2 row-cols-md-4 g-3">
+            @for (item of similar(); track item.id) {
+              <div class="col"><app-product-card [product]="item" /></div>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

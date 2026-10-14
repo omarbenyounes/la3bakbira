@@ -1,22 +1,19 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, effect, inject, input } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { CategoryTreeStore } from '../../core/catalog/category-tree.store';
+import { Breadcrumb, Crumb } from '../../shop/breadcrumb';
+import { ProductListing } from '../../shop/product-listing';
 
 @Component({
   selector: 'app-category-page',
-  imports: [RouterLink],
+  imports: [RouterLink, Breadcrumb, ProductListing],
   template: `
     <div class="container py-4">
       @if (category(); as cat) {
-        <h1 class="h3 fw-bold">{{ cat.name }}</h1>
-        @if (cat.children.length) {
-          <div class="d-flex flex-wrap gap-2 my-3">
-            @for (sub of cat.children; track sub.id) {
-              <a class="btn btn-outline-primary btn-sm" [routerLink]="['/categorie', sub.slug]">{{ sub.name }}</a>
-            }
-          </div>
-        }
-        <p class="text-muted">Les produits de cette catégorie s'afficheront ici.</p>
+        <app-breadcrumb [items]="crumbs()" />
+        <h1 class="h3 fw-bold mb-3">{{ cat.name }}</h1>
+        <app-product-listing [categoryId]="cat.id" [subcategories]="cat.children" />
       } @else if (store.tree() === undefined) {
         <p class="text-muted">Chargement…</p>
       } @else {
@@ -30,8 +27,22 @@ export class CategoryPage {
   protected readonly store = inject(CategoryTreeStore);
   /** Bound from the route parameter :slug */
   readonly slug = input.required<string>();
+
   protected readonly category = computed(() => {
     this.store.tree();
     return this.store.findBySlug(this.slug());
   });
+
+  protected readonly crumbs = computed<Crumb[]>(() => {
+    const cat = this.category();
+    return cat ? this.store.pathTo(cat.id).map((c) => ({ label: c.name, link: ['/categorie', c.slug] })) : [];
+  });
+
+  constructor() {
+    const title = inject(Title);
+    effect(() => {
+      const cat = this.category();
+      if (cat) title.setTitle(`${cat.name} – la3bakbira`);
+    });
+  }
 }

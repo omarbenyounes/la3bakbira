@@ -86,6 +86,19 @@ Other commands: `npm test` (unit tests, Vitest), `npm run build` (production bui
 | http://localhost:4200       | Storefront (category menu from the catalog)   |
 | http://localhost:4200/admin | Admin dashboard (`ADMIN` role, Keycloak login) |
 
+### Storefront
+
+| Page            | URL                         | Features |
+|-----------------|-----------------------------|----------|
+| Home            | `/`                         | Featured products ("en vedette" in the admin), category cards |
+| Category        | `/categorie/:slug`          | Products of the category and its sub-categories; filters: sub-categories, brands (with counts), price range, in stock; sorting (newest, price ↑/↓ on the price actually paid, name); pagination; breadcrumb |
+| Search          | `/recherche?q=…`            | Same listing for a text search (name or reference) |
+| Product         | `/produit/:slug`            | Image gallery, price with discount %, savings, stock status, technical sheet, description, breadcrumb, similar products |
+
+Filters, sort and page are kept in the URL (e.g. `?marques=3,7&prixMax=2000&tri=prix-asc&page=2`),
+so results can be shared, bookmarked and navigated with the browser's back button.
+Shoppers only ever see active products: the API enforces it, an inactive product's URL shows "Produit introuvable".
+
 ### Admin dashboard
 
 | Section     | URL                        | Features |
@@ -150,8 +163,11 @@ All `GET` endpoints are public; `POST`, `PUT` and `DELETE` require a token with 
 | POST / PUT / DELETE | `/api/catalog/categories[/{id}]` | Manage categories |
 | GET    | `/api/catalog/brands[/{id}]`           | Brands |
 | POST / PUT / DELETE | `/api/catalog/brands[/{id}]` | Manage brands |
-| GET    | `/api/catalog/products`                | Search, paginated: `q`, `categoryId` (includes sub-categories), `brandId`, `minPrice`, `maxPrice`, `inStock`, `featured`, `active`, `page`, `size`, `sort=price,asc` |
+| GET    | `/api/catalog/products`                | Search, paginated: `q`, `categoryId` (includes sub-categories), `brandId` (repeatable), `minPrice`, `maxPrice` (price actually paid), `inStock`, `featured`, `active`, `page`, `size`, `sort` (e.g. `effectivePrice,asc`, `createdAt,desc`, `name,asc`) |
+| GET    | `/api/catalog/products/facets`         | Filter options for a listing: brands with product counts and price range (same filters; brand/price ignored) |
 | GET    | `/api/catalog/products/{id}` · `/slug/{slug}` | Product details |
+
+Visibility: callers without the `ADMIN` role only get **active** products (search, facets, details → 404 for inactive ones).
 | POST / PUT / DELETE | `/api/catalog/products[/{id}]` | Manage products |
 
 Errors are returned as RFC 9457 problem details (`400` validation with an `errors` map,
@@ -167,4 +183,5 @@ Prices are in TND with 3 decimals.
 - [x] Step 5 – Security with Keycloak (JWT, ADMIN / CUSTOMER roles)
 - [x] Step 6 – Angular frontend foundation (layout, category menu, Keycloak login, admin guard)
 - [x] Step 7 – Admin: catalog management (categories, brands, products)
-- [ ] Step 8 – Storefront: product listing, filters and product page
+- [x] Step 8 – Storefront: product listing, filters and product page
+- [ ] Step 9 – order-service: cart and checkout
